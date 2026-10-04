@@ -1,2 +1,8 @@
 Raw Data/
 Cleaned Data/
+
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/

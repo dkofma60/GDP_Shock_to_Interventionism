@@ -39,7 +39,7 @@ REQUIRED_SOURCE_COLUMNS = [
     "macro_landline_only",
     "macro_two_modes",
 ]
-FINAL_COLUMNS = ["date", "year", "macropartisanship", "macropid_adj"]
+FINAL_COLUMNS = ["date", "macropid_adj"]
 
 # Published regression coefficients copied exactly from Xtb syntax.do.
 LANDLINE_ONLY_COEFFICIENT = Decimal("-0.0388495")
@@ -157,7 +157,7 @@ def clean_and_validate(source: pd.DataFrame) -> tuple[pd.DataFrame, int, Decimal
         - source["macro_two_modes"] * TWO_MODES_COEFFICIENT
     ).rename("macropid_adj")
 
-    cleaned = source[["date", "year", "macropartisanship"]].copy()
+    cleaned = source[["date"]].copy()
     cleaned["macropid_adj"] = calculated_adjustment
     cleaned = cleaned[FINAL_COLUMNS]
 
@@ -204,7 +204,7 @@ def clean_and_validate(source: pd.DataFrame) -> tuple[pd.DataFrame, int, Decimal
         raise ValueError("Quarterly coverage has one or more gaps.")
 
     absolute_adjustment = (
-        cleaned["macropid_adj"] - cleaned["macropartisanship"]
+        cleaned["macropid_adj"] - source["macropartisanship"]
     ).abs()
     changed_observations = int((absolute_adjustment > 0).sum())
     maximum_absolute_difference = max(absolute_adjustment)
@@ -227,8 +227,9 @@ def write_and_verify(cleaned: pd.DataFrame, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = output_path.with_suffix(".csv.tmp")
     serialized = cleaned.copy()
-    for column in ["macropartisanship", "macropid_adj"]:
-        serialized[column] = serialized[column].map(decimal_to_csv_text)
+    serialized["macropid_adj"] = serialized["macropid_adj"].map(
+        decimal_to_csv_text
+    )
     try:
         serialized.to_csv(temporary_path, index=False)
         written = pd.read_csv(temporary_path, dtype="string")
